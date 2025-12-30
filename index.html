@@ -348,27 +348,45 @@
                 
                 charMap = {};
                 for (let line of lines) {
-                    line = line.trim();
-                    if (!line) continue;
-                    
-                    // 移除可能的BOM標記
-                    if (line.charCodeAt(0) === 0xFEFF) {
+                    // 先移除可能的BOM標記（在trim之前檢查）
+                    if (line.length > 0 && line.charCodeAt(0) === 0xFEFF) {
                         line = line.substring(1);
                     }
                     
+                    line = line.trim();
+                    if (!line) continue;
+                    
+                    // 查找Tab位置
                     const tabPos = line.indexOf('\t');
                     if (tabPos > 0 && tabPos < line.length - 1) {
-                        const chinese = line.substring(0, tabPos);
+                        const chinese = line.substring(0, tabPos).trim();
                         const uiojk = line.substring(tabPos + 1).trim();
-                        if (chinese && uiojk) {
-                            charMap[chinese] = uiojk;
+                        // 移除uiojk中可能的換行符和回車符
+                        const cleanUiojk = uiojk.replace(/[\r\n]/g, '').trim();
+                        if (chinese && cleanUiojk) {
+                            charMap[chinese] = cleanUiojk;
                         }
                     }
                 }
                 
-                statusDiv.textContent = `✓ 字碼表載入成功（${Object.keys(charMap).length} 個字符）`;
+                const charCount = Object.keys(charMap).length;
+                statusDiv.textContent = `✓ 字碼表載入成功（${charCount} 個字符）`;
                 statusDiv.className = 'status ready';
                 dataLoaded = true;
+                
+                // 測試載入的數據（調試用，可以移除）
+                console.log('載入的字符數:', charCount);
+                if (charCount > 0) {
+                    const testChars = ['的', '一', '是', '你'];
+                    console.log('測試字符查找:');
+                    for (let testChar of testChars) {
+                        if (charMap[testChar]) {
+                            console.log(`  ${testChar} => ${charMap[testChar]}`);
+                        } else {
+                            console.log(`  ${testChar} => 未找到`);
+                        }
+                    }
+                }
                 
                 // 初始化HanziLookupJS
                 initHanziLookup();
@@ -435,7 +453,19 @@
                 return;
             }
             
+            // 確保字符映射表已載入
+            if (Object.keys(charMap).length === 0) {
+                outputDiv.innerHTML = '<div style="color: #dc3545; padding: 20px;">字碼表尚未載入完成，請稍候...</div>';
+                return;
+            }
+            
             const results = findUIOJK(chinese);
+            
+            if (results.length === 0) {
+                outputDiv.innerHTML = '<div style="padding: 20px;">未找到任何結果</div>';
+                return;
+            }
+            
             let html = '';
             
             for (let item of results) {
@@ -454,7 +484,7 @@
                 }
             }
             
-            outputDiv.innerHTML = html || '未找到任何結果';
+            outputDiv.innerHTML = html;
         }
         
         // 切換輸入模式
