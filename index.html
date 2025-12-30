@@ -3,67 +3,151 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>手寫輸入 - 中文筆劃查找器</title>
+    <title>中文筆劃查找器</title>
     
     <!-- 引入 jQuery (HanziLookupJS 的 DrawingBoard 需要) -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     
     <!-- 引入 HanziLookupJS 庫 -->
-    <!-- 注意：需要下載 hanzilookup.min.js 和數據文件到本地，或使用 CDN -->
-    <!-- 可以從 https://github.com/gugray/HanziLookupJS 下載 -->
     <script src="hanzilookup.min.js"></script>
     
     <style>
         * {
             box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
         body {
-            margin: 0;
-            padding: 20px;
             font-family: "Microsoft YaHei", "微軟雅黑", sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            padding: 20px;
         }
         .container {
+            max-width: 1200px;
+            margin: 0 auto;
             background: white;
             border-radius: 15px;
             padding: 30px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-            max-width: 600px;
-            width: 100%;
         }
         h1 {
             text-align: center;
             color: #333;
-            margin-top: 0;
-            margin-bottom: 20px;
+            margin-bottom: 30px;
+            font-size: 32px;
+        }
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+        .section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+        }
+        .section-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+        
+        /* 輸入區域樣式 */
+        .input-section {
+            min-height: 400px;
+        }
+        .input-mode {
+            margin-bottom: 15px;
+        }
+        .mode-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .mode-tab {
+            padding: 8px 16px;
+            background: #e9ecef;
+            border: 2px solid transparent;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .mode-tab.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        .mode-tab:hover {
+            background: #5568d3;
+            color: white;
+        }
+        .input-content {
+            display: none;
+        }
+        .input-content.active {
+            display: block;
+        }
+        #textInput {
+            width: 100%;
+            padding: 15px;
             font-size: 24px;
+            border: 3px solid #667eea;
+            border-radius: 8px;
+            font-family: "Microsoft YaHei", sans-serif;
+            box-sizing: border-box;
         }
         #drawingBoard {
             border: 3px solid #667eea;
             background: white;
             border-radius: 10px;
-            margin: 0 auto;
-            display: block;
-            width: 400px;
+            width: 100%;
             height: 300px;
         }
         #drawingBoard canvas {
             border-radius: 10px;
         }
-        .controls {
-            text-align: center;
-            margin-top: 20px;
+        .handwriting-controls {
+            margin-top: 15px;
             display: flex;
             gap: 10px;
-            justify-content: center;
             flex-wrap: wrap;
         }
+        .handwriting-candidates {
+            margin-top: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            min-height: 60px;
+            text-align: center;
+        }
+        .candidate-item {
+            display: inline-block;
+            margin: 5px;
+            padding: 8px 16px;
+            background: #e7f5ff;
+            border: 2px solid #4dabf7;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 24px;
+            transition: all 0.2s;
+        }
+        .candidate-item:hover {
+            background: #4dabf7;
+            color: white;
+            transform: scale(1.1);
+        }
         button {
-            padding: 12px 24px;
+            padding: 10px 20px;
             font-size: 16px;
             cursor: pointer;
             border: none;
@@ -79,7 +163,6 @@
         .btn-clear:hover {
             background: #ee5a52;
             transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
         }
         .btn-recognize {
             background: #51cf66;
@@ -88,96 +171,49 @@
         .btn-recognize:hover {
             background: #40c057;
             transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
         }
-        .btn-copy {
-            background: #4dabf7;
-            color: white;
+        
+        /* 輸出區域樣式 */
+        .output-section {
+            min-height: 400px;
         }
-        .btn-copy:hover {
-            background: #339af0;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        #outputResult {
+            width: 100%;
+            min-height: 350px;
+            padding: 20px;
+            font-size: 20px;
+            border: 3px solid #667eea;
+            border-radius: 8px;
+            background: white;
+            font-family: "Microsoft YaHei", sans-serif;
+            line-height: 2;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            overflow-y: auto;
+            box-sizing: border-box;
         }
-        .result-area {
-            margin-top: 20px;
+        .output-char {
+            margin-bottom: 15px;
             padding: 15px;
             background: #f8f9fa;
             border-radius: 8px;
-            border: 2px solid #dee2e6;
+            border-left: 4px solid #667eea;
         }
-        .result-label {
-            font-size: 14px;
-            color: #666;
-            margin-bottom: 8px;
-            font-weight: bold;
-        }
-        .candidates {
-            margin-top: 10px;
-            padding: 15px;
-            background: white;
-            border-radius: 5px;
-            min-height: 60px;
-            text-align: center;
-        }
-        .candidate-item {
-            display: inline-block;
-            margin: 8px;
-            padding: 12px 20px;
-            background: #e7f5ff;
-            border: 2px solid #4dabf7;
-            border-radius: 8px;
-            cursor: pointer;
+        .char-title {
             font-size: 32px;
-            transition: all 0.2s;
-            user-select: none;
-        }
-        .candidate-item:hover {
-            background: #4dabf7;
-            color: white;
-            transform: scale(1.1);
-        }
-        .selected-char {
-            font-size: 48px;
-            text-align: center;
-            padding: 20px;
-            background: #d4edda;
-            border: 3px solid #51cf66;
-            border-radius: 8px;
-            color: #155724;
             font-weight: bold;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
+            color: #333;
         }
-        .hint {
-            text-align: center;
+        .char-uiojk {
+            font-size: 18px;
             color: #666;
-            font-size: 14px;
-            margin-top: 15px;
-            padding: 10px;
-            background: #e7f5ff;
-            border-radius: 5px;
+            margin-bottom: 5px;
         }
-        .info {
-            margin-top: 20px;
-            padding: 15px;
-            background: #d1ecf1;
-            border-radius: 8px;
-            border-left: 4px solid #0c5460;
-            font-size: 13px;
-            color: #0c5460;
-        }
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #667eea;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        .char-strokes {
+            font-size: 32px;
+            color: #333;
+            font-weight: bold;
         }
         .status {
             text-align: center;
@@ -198,213 +234,328 @@
             background: #f8d7da;
             color: #721c24;
         }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>✍️ 中文手寫輸入</h1>
+        <h1>✍️ 中文筆劃查找器</h1>
         
-        <div id="status" class="status loading">正在載入識別庫...</div>
+        <div id="status" class="status loading">正在載入數據...</div>
         
-        <div id="drawingBoard"></div>
-        
-        <div class="controls">
-            <button class="btn-clear" onclick="clearBoard()">清除</button>
-            <button class="btn-recognize" onclick="recognize()">識別</button>
-            <button class="btn-copy" onclick="copySelected()">複製選中字符</button>
-        </div>
-        
-        <div class="result-area">
-            <div class="result-label">識別結果（點擊字符選擇）：</div>
-            <div id="selectedChar" class="selected-char" style="display: none;"></div>
-            <div class="candidates" id="candidates">
-                <div style="color: #999; padding: 20px;">請在上方區域手寫輸入，然後點擊「識別」</div>
+        <div class="main-content">
+            <!-- 輸入區域 -->
+            <div class="section input-section">
+                <div class="section-title">📝 輸入區域</div>
+                
+                <div class="input-mode">
+                    <div class="mode-tabs">
+                        <div class="mode-tab active" data-mode="keyboard" onclick="switchMode(event, 'keyboard')">⌨️ 鍵盤輸入</div>
+                        <div class="mode-tab" data-mode="handwriting" onclick="switchMode(event, 'handwriting')">✍️ 手寫輸入</div>
+                    </div>
+                    
+                    <!-- 鍵盤輸入模式 -->
+                    <div id="keyboardMode" class="input-content active">
+                        <input type="text" id="textInput" placeholder="請輸入中文字..." autocomplete="off">
+                        <div style="margin-top: 10px; color: #666; font-size: 14px;">
+                            💡 提示：直接輸入中文字，結果會自動顯示在右側
+                        </div>
+                    </div>
+                    
+                    <!-- 手寫輸入模式 -->
+                    <div id="handwritingMode" class="input-content">
+                        <div id="drawingBoard"></div>
+                        <div class="handwriting-controls">
+                            <button class="btn-clear" onclick="clearBoard()">清除</button>
+                            <button class="btn-recognize" onclick="recognizeHandwriting()">識別</button>
+                        </div>
+                        <div id="handwritingCandidates" class="handwriting-candidates" style="display: none;">
+                            <div style="color: #666; font-size: 14px; margin-bottom: 8px;">識別結果（點擊選擇）：</div>
+                            <div id="candidatesList"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
-        
-        <div class="hint">
-            💡 提示：手寫完成後點擊「識別」，然後點擊候選字符選擇，最後點擊「複製選中字符」到主程序
-        </div>
-        
-        <div class="info">
-            <strong>📝 使用說明：</strong><br>
-            1. 在畫布上使用滑鼠或觸控筆書寫中文字<br>
-            2. 書寫完成後點擊「識別」按鈕<br>
-            3. 識別結果會顯示候選字符列表<br>
-            4. 點擊候選字符進行選擇<br>
-            5. 點擊「複製選中字符」複製到剪貼板<br>
-            6. 將複製的字符粘貼到主程序的輸入框中查找筆劃
+            
+            <!-- 輸出區域 -->
+            <div class="section output-section">
+                <div class="section-title">📊 筆劃結果</div>
+                <div id="outputResult">請在左側輸入中文字...</div>
+            </div>
         </div>
     </div>
 
     <script>
+        // 全局變量
+        let charMap = {}; // 字符到UIOJK的映射
         let drawingBoard = null;
         let matcher = null;
-        let selectedCharacter = '';
         let dataLoaded = false;
-
-        // 初始化 HanziLookupJS
-        $(document).ready(function() {
-            // 檢查 HanziLookupJS 是否已載入
+        let hanzilookupLoaded = false;
+        
+        // UIOJK到筆劃的轉換映射
+        function uiojkToStroke(c) {
+            switch (c.toLowerCase()) {
+                case 'u': return '一';
+                case 'i': return '丨';
+                case 'o': return '丿';
+                case 'j': return '丶';
+                case 'k': return 'フ';
+                default: return c;
+            }
+        }
+        
+        // 轉換UIOJK字符串為筆劃字符串
+        function convertUIOJKToStrokes(uiojk) {
+            let result = '';
+            for (let c of uiojk) {
+                if (c !== ' ' && c !== '\t') {
+                    result += uiojkToStroke(c);
+                }
+            }
+            return result;
+        }
+        
+        // 從GitHub載入Zi-Ma-Biao.txt
+        async function loadCharData() {
+            const statusDiv = document.getElementById('status');
+            try {
+                statusDiv.textContent = '正在從GitHub載入字碼表...';
+                statusDiv.className = 'status loading';
+                
+                // 使用 raw URL
+                const url = 'https://raw.githubusercontent.com/Yamazaki427858/ChineseStrokeIME/ChineseStrokeIME/SourceCode/%E5%AD%97%E7%A2%BC/Zi-Ma-Biao.txt';
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error('無法載入字碼表');
+                }
+                
+                const text = await response.text();
+                const lines = text.split('\n');
+                
+                charMap = {};
+                for (let line of lines) {
+                    line = line.trim();
+                    if (!line) continue;
+                    
+                    // 移除可能的BOM標記
+                    if (line.charCodeAt(0) === 0xFEFF) {
+                        line = line.substring(1);
+                    }
+                    
+                    const tabPos = line.indexOf('\t');
+                    if (tabPos > 0 && tabPos < line.length - 1) {
+                        const chinese = line.substring(0, tabPos);
+                        const uiojk = line.substring(tabPos + 1).trim();
+                        if (chinese && uiojk) {
+                            charMap[chinese] = uiojk;
+                        }
+                    }
+                }
+                
+                statusDiv.textContent = `✓ 字碼表載入成功（${Object.keys(charMap).length} 個字符）`;
+                statusDiv.className = 'status ready';
+                dataLoaded = true;
+                
+                // 初始化HanziLookupJS
+                initHanziLookup();
+            } catch (error) {
+                console.error('載入失敗:', error);
+                statusDiv.textContent = `錯誤：無法載入字碼表 - ${error.message}`;
+                statusDiv.className = 'status error';
+            }
+        }
+        
+        // 初始化HanziLookupJS
+        function initHanziLookup() {
             if (typeof HanziLookup === 'undefined') {
-                document.getElementById('status').textContent = '錯誤：hanzilookup.min.js 未載入';
-                document.getElementById('status').className = 'status error';
+                console.warn('HanziLookupJS 未載入');
                 return;
             }
-
-            // 初始化數據文件（需要下載 mmah.json 或 orig.json 到本地）
-            // 注意：需要將數據文件放在與 HTML 文件相同的目錄，或調整路徑
+            
+            // 初始化數據文件
             HanziLookup.init("mmah", "mmah.json", function(success) {
                 if (success) {
-                    dataLoaded = true;
-                    document.getElementById('status').textContent = '✓ 識別庫已載入，可以開始書寫';
-                    document.getElementById('status').className = 'status ready';
-                    
-                    // 創建識別器實例
+                    hanzilookupLoaded = true;
                     matcher = new HanziLookup.Matcher("mmah");
                     
-                    // 初始化繪圖板
-                    initDrawingBoard();
+                    // 初始化繪圖板（延遲初始化，確保DOM已渲染）
+                    setTimeout(() => {
+                        if ($("#drawingBoard").length > 0 && $("#drawingBoard").width() > 0) {
+                            drawingBoard = new HanziLookup.DrawingBoard($("#drawingBoard"), {
+                                width: $("#drawingBoard").width(),
+                                height: 300
+                            });
+                        }
+                    }, 100);
                 } else {
-                    const statusDiv = document.getElementById('status');
-                    statusDiv.className = 'status error';
-                    statusDiv.innerHTML = '錯誤：無法載入數據文件 mmah.json<br><br>' +
-                        '<strong>解決方法：</strong><br>' +
-                        '瀏覽器無法直接加載本地 JSON 文件（安全限制）<br>' +
-                        '請使用本地服務器打開此頁面：<br><br>' +
-                        '1. 運行 <code>啟動本地服務器.bat</code><br>' +
-                        '2. 在瀏覽器中訪問 <code>http://localhost:8000/handwriting_hanzilookup.html</code><br><br>' +
-                        '或者使用其他本地服務器工具（如 VS Code 的 Live Server）';
+                    console.warn('無法載入 mmah.json，手寫功能將不可用');
                 }
             });
-        });
-
-        // 初始化繪圖板
-        function initDrawingBoard() {
-            drawingBoard = new HanziLookup.DrawingBoard($("#drawingBoard"), {
-                width: 400,
-                height: 300
-            });
         }
-
-        // 清除繪圖板
+        
+        // 查找字符對應的UIOJK
+        function findUIOJK(chinese) {
+            let result = [];
+            for (let c of chinese) {
+                if (charMap[c]) {
+                    result.push({
+                        char: c,
+                        uiojk: charMap[c]
+                    });
+                } else {
+                    result.push({
+                        char: c,
+                        uiojk: null
+                    });
+                }
+            }
+            return result;
+        }
+        
+        // 更新輸出顯示
+        function updateOutput(chinese) {
+            const outputDiv = document.getElementById('outputResult');
+            
+            if (!chinese || chinese.trim() === '') {
+                outputDiv.textContent = '請在左側輸入中文字...';
+                return;
+            }
+            
+            const results = findUIOJK(chinese);
+            let html = '';
+            
+            for (let item of results) {
+                if (item.uiojk) {
+                    const strokes = convertUIOJKToStrokes(item.uiojk);
+                    html += `<div class="output-char">
+                        <div class="char-title">${item.char}</div>
+                        <div class="char-uiojk">UIOJK: ${item.uiojk}</div>
+                        <div class="char-strokes">${strokes}</div>
+                    </div>`;
+                } else {
+                    html += `<div class="output-char">
+                        <div class="char-title">${item.char}</div>
+                        <div class="char-uiojk" style="color: #dc3545;">未找到對應的筆劃編碼</div>
+                    </div>`;
+                }
+            }
+            
+            outputDiv.innerHTML = html || '未找到任何結果';
+        }
+        
+        // 切換輸入模式
+        function switchMode(event, mode) {
+            // 更新標籤狀態
+            document.querySelectorAll('.mode-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            if (event && event.target) {
+                event.target.classList.add('active');
+            } else {
+                // 如果沒有event，通過data-mode屬性查找
+                document.querySelector(`.mode-tab[data-mode="${mode}"]`).classList.add('active');
+            }
+            
+            // 顯示對應的輸入區域
+            document.getElementById('keyboardMode').classList.remove('active');
+            document.getElementById('handwritingMode').classList.remove('active');
+            document.getElementById(mode + 'Mode').classList.add('active');
+            
+            // 如果是手寫模式且繪圖板未初始化，則初始化
+            if (mode === 'handwriting' && !drawingBoard && hanzilookupLoaded && typeof HanziLookup !== 'undefined') {
+                setTimeout(() => {
+                    if ($("#drawingBoard").length > 0 && $("#drawingBoard").width() > 0) {
+                        drawingBoard = new HanziLookup.DrawingBoard($("#drawingBoard"), {
+                            width: $("#drawingBoard").width(),
+                            height: 300
+                        });
+                    }
+                }, 100);
+            }
+        }
+        
+        // 清除手寫板
         function clearBoard() {
             if (drawingBoard) {
                 drawingBoard.clear();
-                document.getElementById('candidates').innerHTML = '<div style="color: #999; padding: 20px;">請在上方區域手寫輸入，然後點擊「識別」</div>';
-                document.getElementById('selectedChar').style.display = 'none';
-                selectedCharacter = '';
+                document.getElementById('handwritingCandidates').style.display = 'none';
             }
         }
-
-        // 識別功能
-        function recognize() {
-            if (!drawingBoard || !matcher || !dataLoaded) {
-                alert('識別庫未載入完成，請稍候...');
+        
+        // 識別手寫
+        function recognizeHandwriting() {
+            if (!drawingBoard || !matcher || !hanzilookupLoaded) {
+                alert('手寫識別功能未就緒，請確保 mmah.json 已載入');
                 return;
             }
-
+            
             const strokes = drawingBoard.cloneStrokes();
             if (!strokes || strokes.length === 0) {
                 alert('請先書寫一些內容');
                 return;
             }
-
-            const candidatesDiv = document.getElementById('candidates');
-            candidatesDiv.innerHTML = '<div style="padding: 20px;"><span class="loading"></span> 識別中...</div>';
-
-            // 分析字符
-            const analyzedChar = new HanziLookup.AnalyzedCharacter(strokes);
             
-            // 查找匹配（返回前10個候選）
+            const candidatesDiv = document.getElementById('candidatesList');
+            candidatesDiv.innerHTML = '<span class="loading"></span> 識別中...';
+            document.getElementById('handwritingCandidates').style.display = 'block';
+            
+            const analyzedChar = new HanziLookup.AnalyzedCharacter(strokes);
             matcher.match(analyzedChar, 10, function(matches) {
                 if (matches && matches.length > 0) {
-                    displayCandidates(matches);
+                    let html = '';
+                    for (let match of matches) {
+                        const char = match.character;
+                        html += `<span class="candidate-item" onclick="selectCandidate('${char}')">${char}</span>`;
+                    }
+                    candidatesDiv.innerHTML = html;
                 } else {
-                    candidatesDiv.innerHTML = '<div style="color: #999; padding: 20px;">未找到匹配的字符，請重新書寫</div>';
+                    candidatesDiv.innerHTML = '<div style="color: #999;">未找到匹配的字符</div>';
                 }
             });
         }
-
-        // 顯示候選字符
-        function displayCandidates(matches) {
-            const candidatesDiv = document.getElementById('candidates');
-            let html = '';
+        
+        // 選擇候選字符
+        function selectCandidate(char) {
+            // 將選中的字符添加到輸入框
+            const input = document.getElementById('textInput');
+            input.value += char;
+            input.focus();
             
-            for (let i = 0; i < matches.length; i++) {
-                const char = matches[i].character;
-                html += `<span class="candidate-item" onclick="selectCharacter('${char}')">${char}</span>`;
-            }
+            // 觸發輸入事件以更新輸出
+            const event = new Event('input', { bubbles: true });
+            input.dispatchEvent(event);
             
-            candidatesDiv.innerHTML = html;
+            // 隱藏候選列表
+            document.getElementById('handwritingCandidates').style.display = 'none';
+            
+            // 清除手寫板
+            clearBoard();
         }
-
-        // 選擇字符
-        function selectCharacter(char) {
-            selectedCharacter = char;
-            const selectedDiv = document.getElementById('selectedChar');
-            selectedDiv.textContent = char;
-            selectedDiv.style.display = 'block';
+        
+        // 初始化
+        $(document).ready(function() {
+            // 載入字碼表
+            loadCharData();
             
-            // 高亮選中的候選項
-            const items = document.querySelectorAll('.candidate-item');
-            items.forEach(item => {
-                if (item.textContent === char) {
-                    item.style.background = '#51cf66';
-                    item.style.color = 'white';
-                    item.style.borderColor = '#51cf66';
-                } else {
-                    item.style.background = '#e7f5ff';
-                    item.style.color = '#333';
-                    item.style.borderColor = '#4dabf7';
-                }
+            // 監聽輸入框變化
+            $('#textInput').on('input', function() {
+                updateOutput($(this).val());
             });
-        }
-
-        // 複製選中的字符
-        function copySelected() {
-            if (!selectedCharacter) {
-                alert('請先選擇一個字符');
-                return;
-            }
-
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(selectedCharacter).then(() => {
-                    const selectedDiv = document.getElementById('selectedChar');
-                    const originalText = selectedDiv.textContent;
-                    selectedDiv.textContent = '✓ 已複製到剪貼板！';
-                    selectedDiv.style.background = '#d4edda';
-                    setTimeout(() => {
-                        selectedDiv.textContent = originalText;
-                        selectedDiv.style.background = '#d4edda';
-                    }, 1500);
-                }).catch(err => {
-                    alert('複製失敗：' + err);
-                });
-            } else {
-                // 降級方案
-                const textArea = document.createElement('textarea');
-                textArea.value = selectedCharacter;
-                textArea.style.position = 'fixed';
-                textArea.style.opacity = '0';
-                document.body.appendChild(textArea);
-                textArea.select();
-                try {
-                    document.execCommand('copy');
-                    const selectedDiv = document.getElementById('selectedChar');
-                    const originalText = selectedDiv.textContent;
-                    selectedDiv.textContent = '✓ 已複製到剪貼板！';
-                    selectedDiv.style.background = '#d4edda';
-                    setTimeout(() => {
-                        selectedDiv.textContent = originalText;
-                        selectedDiv.style.background = '#d4edda';
-                    }, 1500);
-                } catch (err) {
-                    alert('複製失敗，請手動選擇文本複製');
-                }
-                document.body.removeChild(textArea);
-            }
-        }
+        });
     </script>
 </body>
 </html>
