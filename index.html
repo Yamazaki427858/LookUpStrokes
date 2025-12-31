@@ -441,21 +441,40 @@
                 return;
             }
             
+            // 如果已經存在 drawingBoard，先清空容器
+            if (drawingBoard) {
+                try {
+                    boardElement.empty();
+                } catch (e) {
+                    console.error('清空容器時出錯:', e);
+                }
+            }
+            
             // 確保容器可見且已渲染
             const domElement = boardElement[0];
-            if (!domElement || domElement.offsetWidth === 0) {
+            if (!domElement) {
                 setTimeout(() => {
                     initDrawingBoard();
                 }, 100);
                 return;
             }
             
-            // 使用 clientWidth 獲取內部寬度（不包含 border）
-            const boardWidth = domElement.clientWidth;
+            // 使用 getBoundingClientRect 獲取準確的尺寸
+            const rect = domElement.getBoundingClientRect();
+            if (rect.width === 0 || rect.height === 0) {
+                setTimeout(() => {
+                    initDrawingBoard();
+                }, 100);
+                return;
+            }
+            
+            // 計算實際可用寬度和高度（排除 border，3px * 2 = 6px）
+            const boardWidth = Math.floor(rect.width - 6);
+            const boardHeight = Math.floor(rect.height - 6);
             
             drawingBoard = new HanziLookup.DrawingBoard(boardElement, {
                 width: boardWidth,
-                height: 300
+                height: boardHeight
             });
             
             // 重置筆劃計數
@@ -610,11 +629,15 @@
                         const boardElement = $("#drawingBoard");
                         boardElement.empty();
                         const domElement = boardElement[0];
-                        const boardWidth = domElement ? domElement.clientWidth : boardElement.width();
-                        drawingBoard = new HanziLookup.DrawingBoard(boardElement, {
-                            width: boardWidth,
-                            height: 300
-                        });
+                        if (domElement) {
+                            const rect = domElement.getBoundingClientRect();
+                            const boardWidth = Math.floor(rect.width - 6);
+                            const boardHeight = Math.floor(rect.height - 6);
+                            drawingBoard = new HanziLookup.DrawingBoard(boardElement, {
+                                width: boardWidth,
+                                height: boardHeight
+                            });
+                        }
                         // 重新初始化監聽
                         initDrawingBoard();
                         return;
@@ -625,11 +648,15 @@
                     const boardElement = $("#drawingBoard");
                     boardElement.empty();
                     const domElement = boardElement[0];
-                    const boardWidth = domElement ? domElement.clientWidth : boardElement.width();
-                    drawingBoard = new HanziLookup.DrawingBoard(boardElement, {
-                        width: boardWidth,
-                        height: 300
-                    });
+                    if (domElement) {
+                        const rect = domElement.getBoundingClientRect();
+                        const boardWidth = Math.floor(rect.width - 6);
+                        const boardHeight = Math.floor(rect.height - 6);
+                        drawingBoard = new HanziLookup.DrawingBoard(boardElement, {
+                            width: boardWidth,
+                            height: boardHeight
+                        });
+                    }
                     // 重新初始化監聽
                     initDrawingBoard();
                     return;
