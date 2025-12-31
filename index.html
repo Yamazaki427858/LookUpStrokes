@@ -208,13 +208,13 @@
         .char-title {
             font-size: 32px;
             font-weight: bold;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
             color: #333;
         }
         .char-uiojk {
             font-size: 18px;
             color: #666;
-            margin-bottom: 5px;
+            margin-bottom: 3px;
         }
         .char-strokes {
             font-size: 32px;
@@ -432,6 +432,7 @@
         let recognitionTimer = null;
         let lastStrokeCount = 0;
         let strokeCheckInterval = null;
+        let strokeHistory = []; // 用於實現 undo 功能
         
         // 初始化繪圖板並設置即時識別
         function initDrawingBoard() {
@@ -444,7 +445,8 @@
                 height: 300
             });
             
-            // 設置即時識別（監聽筆劃變化）
+            // 重置筆劃歷史
+            strokeHistory = [];
             lastStrokeCount = 0;
             
             // 清除之前的檢查計時器
@@ -461,6 +463,11 @@
                         
                         // 如果筆劃數量增加，說明用戶完成了新的一筆
                         if (currentStrokeCount > lastStrokeCount) {
+                            // 保存筆劃歷史（用於 undo）
+                            if (strokes && strokes.length > 0) {
+                                strokeHistory.push(strokes.map(s => s.map(p => [p[0], p[1]])));
+                            }
+                            
                             lastStrokeCount = currentStrokeCount;
                             
                             // 清除之前的識別計時器
@@ -517,7 +524,7 @@
             return result;
         }
         
-        // 更新輸出顯示
+        // 更新輸出顯示（只顯示最後一個字符的結果）
         function updateOutput(chinese) {
             const outputDiv = document.getElementById('outputResult');
             
@@ -532,32 +539,24 @@
                 return;
             }
             
-            const results = findUIOJK(chinese);
+            // 只取最後一個字符
+            const lastChar = chinese.trim().slice(-1);
+            const uiojk = charMap[lastChar];
             
-            if (results.length === 0) {
-                outputDiv.innerHTML = '<div style="padding: 20px;">未找到任何結果</div>';
+            if (!uiojk) {
+                outputDiv.innerHTML = `<div class="output-char">
+                    <div class="char-title">${lastChar}</div>
+                    <div class="char-uiojk" style="color: #dc3545;">未找到對應的筆劃編碼</div>
+                </div>`;
                 return;
             }
             
-            let html = '';
-            
-            for (let item of results) {
-                if (item.uiojk) {
-                    const strokes = convertUIOJKToStrokes(item.uiojk);
-                    html += `<div class="output-char">
-                        <div class="char-title">${item.char}</div>
-                        <div class="char-uiojk">UIOJK: ${item.uiojk}</div>
-                        <div class="char-strokes">${strokes}</div>
-                    </div>`;
-                } else {
-                    html += `<div class="output-char">
-                        <div class="char-title">${item.char}</div>
-                        <div class="char-uiojk" style="color: #dc3545;">未找到對應的筆劃編碼</div>
-                    </div>`;
-                }
-            }
-            
-            outputDiv.innerHTML = html;
+            const strokes = convertUIOJKToStrokes(uiojk);
+            outputDiv.innerHTML = `<div class="output-char">
+                <div class="char-title">${lastChar}</div>
+                <div class="char-uiojk">UIOJK: ${uiojk}</div>
+                <div class="char-strokes">${strokes}</div>
+            </div>`;
         }
         
         // 切換輸入模式
@@ -596,7 +595,36 @@
         // 清除手寫板
         function clearBoard() {
             if (drawingBoard) {
-                drawingBoard.clear();
+                try {
+                    if (typeof drawingBoard.clear === 'function') {
+                        drawingBoard.clear();
+                    } else {
+                        // 如果沒有 clear 方法，嘗試重新初始化
+                        const boardElement = $("#drawingBoard");
+                        boardElement.empty();
+                        drawingBoard = new HanziLookup.DrawingBoard(boardElement, {
+                            width: boardElement.width(),
+                            height: 300
+                        });
+                        initDrawingBoard();
+                        return;
+                    }
+                } catch (e) {
+                    console.error('清除畫布時出錯:', e);
+                    // 如果出錯，重新初始化
+                    const boardElement = $("#drawingBoard");
+                    boardElement.empty();
+                    drawingBoard = new HanziLookup.DrawingBoard(boardElement, {
+                        width: boardElement.width(),
+                        height: 300
+                    });
+                    initDrawingBoard();
+                    return;
+                }
+                
+                strokeHistory = [];
+                lastStrokeCount = 0;
+                
                 const candidatesDiv = document.getElementById('candidatesList');
                 candidatesDiv.innerHTML = '<div style="color: #999; padding: 20px; text-align: center;">請在上方書寫，識別結果會即時顯示</div>';
                 updateUndoButton();
@@ -605,8 +633,21 @@
         
         // 重做（撤銷最後一筆）
         function undoStroke() {
-            if (drawingBoard && typeof drawingBoard.undo === 'function') {
-                drawingBoard.undo();
+            if (!drawingBoard) return;
+            
+            try {
+                // 如果 DrawingBoard 有 undo 方法，使用它
+                if (typeof drawingBoard.undo === 'function') {
+                    drawingBoard.undo();
+                    lastStrokeCount = Math.max(0, lastStrokeCount - 1);
+                } else {
+                    // 如果沒有 undo 方法，嘗試使用 clear 並提示用戶
+                    // 或者檢查是否有其他可用方法
+                    console.warn('DrawingBoard 不支持 undo 方法，請使用清除按鈕');
+                    alert('此版本的 DrawingBoard 不支持撤銷功能，請使用清除按鈕重新開始');
+                    return;
+                }
+                
                 // 如果還有筆劃，重新識別
                 const strokes = drawingBoard.cloneStrokes();
                 if (strokes && strokes.length > 0) {
@@ -614,11 +655,11 @@
                 } else {
                     const candidatesDiv = document.getElementById('candidatesList');
                     candidatesDiv.innerHTML = '<div style="color: #999; padding: 20px; text-align: center;">請在上方書寫，識別結果會即時顯示</div>';
+                    lastStrokeCount = 0;
                 }
                 updateUndoButton();
-            } else {
-                // 如果 DrawingBoard 沒有 undo 方法，嘗試手動實現
-                console.warn('DrawingBoard 不支持 undo 方法');
+            } catch (e) {
+                console.error('撤銷筆劃時出錯:', e);
             }
         }
         
