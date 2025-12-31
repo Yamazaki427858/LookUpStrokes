@@ -112,9 +112,16 @@
             border-radius: 10px;
             width: 100%;
             height: 300px;
+            position: relative;
+            overflow: hidden;
+            box-sizing: border-box;
         }
         #drawingBoard canvas {
             border-radius: 10px;
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
         }
         .handwriting-controls {
             margin-top: 15px;
@@ -424,8 +431,12 @@
                 return;
             }
             
-            drawingBoard = new HanziLookup.DrawingBoard($("#drawingBoard"), {
-                width: $("#drawingBoard").width(),
+            // 確保獲取正確的寬度（考慮 padding 和 border）
+            const boardElement = $("#drawingBoard");
+            const boardWidth = boardElement.width();
+            
+            drawingBoard = new HanziLookup.DrawingBoard(boardElement, {
+                width: boardWidth,
                 height: 300
             });
             
@@ -437,7 +448,7 @@
                 clearInterval(strokeCheckInterval);
             }
             
-            // 使用定時檢查筆劃數量變化
+            // 使用定時檢查筆劃數量變化（不要干擾 DrawingBoard 的內部事件處理）
             strokeCheckInterval = setInterval(() => {
                 if (drawingBoard && matcher && hanzilookupLoaded) {
                     try {
@@ -463,24 +474,6 @@
                     }
                 }
             }, 200);
-            
-            // 監聽畫布的鼠標/觸摸事件來觸發識別（使用 off 然後 on 確保不重複綁定）
-            const boardElement = $("#drawingBoard");
-            const canvas = boardElement.find('canvas')[0];
-            if (canvas) {
-                // 先移除舊的事件監聽器，再添加新的（避免重複綁定）
-                $(canvas).off('mouseup touchend');
-                // 當鼠標抬起時（完成一筆）
-                $(canvas).on('mouseup touchend', function() {
-                    if (recognitionTimer) {
-                        clearTimeout(recognitionTimer);
-                    }
-                    // 延遲300ms後識別
-                    recognitionTimer = setTimeout(() => {
-                        recognizeHandwriting();
-                    }, 300);
-                });
-            }
             
         }
         
