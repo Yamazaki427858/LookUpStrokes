@@ -113,12 +113,12 @@
             width: 100%;
             height: 300px;
             box-sizing: border-box;
+            position: relative;
         }
         #drawingBoard canvas {
             border-radius: 10px;
             display: block;
-            width: 100% !important;
-            height: 100% !important;
+            cursor: crosshair;
         }
         .handwriting-controls {
             margin-top: 15px;
@@ -302,7 +302,7 @@
             手寫識別技術使用了 <a href="https://github.com/gugray/HanziLookupJS" target="_blank" style="color: #fff; text-decoration: underline;">HanziLookupJS</a>
         </p>
         <p style="margin: 10px 0;">
-            項目地址：<a href="https://github.com/Yamazaki427858" target="_blank" style="color: #fff; text-decoration: underline;">https://github.com/Yamazaki427858</a>
+            中文筆劃輸入法GitHub：<a href="https://github.com/Yamazaki427858" target="_blank" style="color: #fff; text-decoration: underline;">https://github.com/Yamazaki427858</a>
         </p>
     </footer>
 
@@ -450,8 +450,8 @@
                 return;
             }
             
-            // 使用 offsetWidth 獲取實際寬度（不包含 border）
-            const boardWidth = domElement.offsetWidth - 6; // 減去 border 寬度 (3px * 2)
+            // 使用 clientWidth 獲取內部寬度（不包含 border）
+            const boardWidth = domElement.clientWidth;
             
             drawingBoard = new HanziLookup.DrawingBoard(boardElement, {
                 width: boardWidth,
@@ -610,7 +610,7 @@
                         const boardElement = $("#drawingBoard");
                         boardElement.empty();
                         const domElement = boardElement[0];
-                        const boardWidth = domElement ? (domElement.offsetWidth - 6) : boardElement.width();
+                        const boardWidth = domElement ? domElement.clientWidth : boardElement.width();
                         drawingBoard = new HanziLookup.DrawingBoard(boardElement, {
                             width: boardWidth,
                             height: 300
@@ -625,7 +625,7 @@
                     const boardElement = $("#drawingBoard");
                     boardElement.empty();
                     const domElement = boardElement[0];
-                    const boardWidth = domElement ? (domElement.offsetWidth - 6) : boardElement.width();
+                    const boardWidth = domElement ? domElement.clientWidth : boardElement.width();
                     drawingBoard = new HanziLookup.DrawingBoard(boardElement, {
                         width: boardWidth,
                         height: 300
