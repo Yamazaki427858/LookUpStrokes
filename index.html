@@ -353,6 +353,27 @@
             return result;
         }
         
+        // 生成3+3格式的字碼（頭3個字碼 + ＊ + 後3個字碼）
+        function format3Plus3(uiojk) {
+            // 移除空格和製表符
+            const cleanUiojk = uiojk.replace(/[\s\t]/g, '');
+            
+            if (cleanUiojk.length <= 3) {
+                // 如果長度小於等於3，只顯示原碼
+                return cleanUiojk;
+            } else if (cleanUiojk.length <= 6) {
+                // 如果長度小於等於6，前3個 + ＊ + 剩餘部分
+                const first3 = cleanUiojk.substring(0, 3);
+                const lastPart = cleanUiojk.substring(3);
+                return `${first3}＊${lastPart}`;
+            } else {
+                // 長度大於6，前3個 + ＊ + 後3個
+                const first3 = cleanUiojk.substring(0, 3);
+                const last3 = cleanUiojk.substring(cleanUiojk.length - 3);
+                return `${first3}＊${last3}`;
+            }
+        }
+        
         // 從GitHub載入Zi-Ma-Biao.txt
         async function loadCharData() {
             const statusDiv = document.getElementById('status');
@@ -596,9 +617,11 @@
             }
             
             const strokes = convertUIOJKToStrokes(uiojk);
+            const code3Plus3 = format3Plus3(uiojk);
             outputDiv.innerHTML = `<div class="output-char">
                 <div class="char-title">${lastChar}</div>
                 <div class="char-uiojk">UIOJK: ${uiojk}</div>
+                <div class="char-uiojk">3+3: ${code3Plus3}</div>
                 <div class="char-strokes">${strokes}</div>
             </div>`;
         }
