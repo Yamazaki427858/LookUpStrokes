@@ -464,10 +464,12 @@
                 }
             }, 200);
             
-            // 監聽畫布的鼠標/觸摸事件來觸發識別
+            // 監聽畫布的鼠標/觸摸事件來觸發識別（使用 off 然後 on 確保不重複綁定）
             const boardElement = $("#drawingBoard");
             const canvas = boardElement.find('canvas')[0];
             if (canvas) {
+                // 先移除舊的事件監聽器，再添加新的（避免重複綁定）
+                $(canvas).off('mouseup touchend');
                 // 當鼠標抬起時（完成一筆）
                 $(canvas).on('mouseup touchend', function() {
                     if (recognitionTimer) {
@@ -566,8 +568,6 @@
         // 清除手寫板
         function clearBoard() {
             if (drawingBoard) {
-                let needReinit = false;
-                
                 try {
                     // 清除識別計時器
                     if (recognitionTimer) {
@@ -579,38 +579,37 @@
                     if (typeof drawingBoard.clear === 'function') {
                         drawingBoard.clear();
                     } else {
-                        // 如果沒有 clear 方法，需要重新初始化繪圖板
-                        needReinit = true;
+                        // 如果沒有 clear 方法，重新初始化繪圖板
                         const boardElement = $("#drawingBoard");
                         boardElement.empty();
                         drawingBoard = new HanziLookup.DrawingBoard(boardElement, {
                             width: boardElement.width(),
                             height: 300
                         });
+                        // 重新初始化監聽
+                        initDrawingBoard();
+                        return;
                     }
                 } catch (e) {
                     console.error('清除畫布時出錯:', e);
                     // 如果出錯，重新初始化
-                    needReinit = true;
                     const boardElement = $("#drawingBoard");
                     boardElement.empty();
                     drawingBoard = new HanziLookup.DrawingBoard(boardElement, {
                         width: boardElement.width(),
                         height: 300
                     });
+                    // 重新初始化監聽
+                    initDrawingBoard();
+                    return;
                 }
                 
-                // 重置筆劃計數
+                // 重置筆劃計數（這是關鍵，確保下次檢測到新筆劃）
                 lastStrokeCount = 0;
                 
                 // 清空候選列表
                 const candidatesDiv = document.getElementById('candidatesList');
                 candidatesDiv.innerHTML = '<div style="color: #999; padding: 20px; text-align: center;">請在上方書寫，識別結果會即時顯示</div>';
-                
-                // 如果重新初始化了繪圖板，需要重新設置監聽
-                if (needReinit) {
-                    initDrawingBoard();
-                }
             }
         }
         
