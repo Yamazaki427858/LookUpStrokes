@@ -356,6 +356,8 @@
                 const lines = text.split('\n');
                 
                 charMap = {};
+                let validLineCount = 0; // 統計有效行數
+                
                 for (let line of lines) {
                     // 先移除可能的BOM標記（在trim之前檢查）
                     if (line.length > 0 && line.charCodeAt(0) === 0xFEFF) {
@@ -374,17 +376,18 @@
                         const cleanUiojk = uiojk.replace(/[\r\n]/g, '').trim();
                         if (chinese && cleanUiojk) {
                             charMap[chinese] = cleanUiojk;
+                            validLineCount++; // 成功解析的行數
                         }
                     }
                 }
                 
-                const charCount = Object.keys(charMap).length;
-                statusDiv.textContent = `✓ 字碼表載入成功（${charCount} 個字符）`;
+                statusDiv.textContent = `✓ 字碼表載入成功（${validLineCount} 個字符）`;
                 statusDiv.className = 'status ready';
                 dataLoaded = true;
                 
                 // 測試載入的數據（調試用，可以移除）
-                console.log('載入的字符數:', charCount);
+                const charCount = Object.keys(charMap).length;
+                console.log('載入的字符數:', charCount, '有效行數:', validLineCount);
                 if (charCount > 0) {
                     const testChars = ['的', '一', '是', '你'];
                     console.log('測試字符查找:');
@@ -731,5 +734,6 @@
     </script>
 </body>
 </html>
+
 
 
