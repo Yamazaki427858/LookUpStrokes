@@ -164,20 +164,6 @@
             background: #ee5a52;
             transform: translateY(-2px);
         }
-        .btn-undo {
-            background: #ffa94d;
-            color: white;
-        }
-        .btn-undo:hover {
-            background: #ff922b;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-        }
-        .btn-undo:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-            transform: none;
-        }
         
         /* 輸出區域樣式 */
         .output-section {
@@ -284,7 +270,6 @@
                     <div id="handwritingMode" class="input-content">
                         <div id="drawingBoard"></div>
                         <div class="handwriting-controls">
-                            <button class="btn-undo" onclick="undoStroke()">重做</button>
                             <button class="btn-clear" onclick="clearBoard()">清除</button>
                         </div>
                         <div id="handwritingCandidates" class="handwriting-candidates">
@@ -432,7 +417,6 @@
         let recognitionTimer = null;
         let lastStrokeCount = 0;
         let strokeCheckInterval = null;
-        let strokeHistory = []; // 用於實現 undo 功能
         
         // 初始化繪圖板並設置即時識別
         function initDrawingBoard() {
@@ -445,8 +429,7 @@
                 height: 300
             });
             
-            // 重置筆劃歷史
-            strokeHistory = [];
+            // 重置筆劃計數
             lastStrokeCount = 0;
             
             // 清除之前的檢查計時器
@@ -463,11 +446,6 @@
                         
                         // 如果筆劃數量增加，說明用戶完成了新的一筆
                         if (currentStrokeCount > lastStrokeCount) {
-                            // 保存筆劃歷史（用於 undo）
-                            if (strokes && strokes.length > 0) {
-                                strokeHistory.push(strokes.map(s => s.map(p => [p[0], p[1]])));
-                            }
-                            
                             lastStrokeCount = currentStrokeCount;
                             
                             // 清除之前的識別計時器
@@ -502,7 +480,6 @@
                 });
             }
             
-            updateUndoButton();
         }
         
         // 查找字符對應的UIOJK
@@ -584,97 +561,59 @@
                 }, 100);
             }
             
-            // 更新重做按鈕狀態
-            if (mode === 'handwriting') {
-                setTimeout(() => {
-                    updateUndoButton();
-                }, 200);
-            }
         }
         
         // 清除手寫板
         function clearBoard() {
             if (drawingBoard) {
+                let needReinit = false;
+                
                 try {
+                    // 清除識別計時器
+                    if (recognitionTimer) {
+                        clearTimeout(recognitionTimer);
+                        recognitionTimer = null;
+                    }
+                    
+                    // 嘗試使用 clear 方法
                     if (typeof drawingBoard.clear === 'function') {
                         drawingBoard.clear();
                     } else {
-                        // 如果沒有 clear 方法，嘗試重新初始化
+                        // 如果沒有 clear 方法，需要重新初始化繪圖板
+                        needReinit = true;
                         const boardElement = $("#drawingBoard");
                         boardElement.empty();
                         drawingBoard = new HanziLookup.DrawingBoard(boardElement, {
                             width: boardElement.width(),
                             height: 300
                         });
-                        initDrawingBoard();
-                        return;
                     }
                 } catch (e) {
                     console.error('清除畫布時出錯:', e);
                     // 如果出錯，重新初始化
+                    needReinit = true;
                     const boardElement = $("#drawingBoard");
                     boardElement.empty();
                     drawingBoard = new HanziLookup.DrawingBoard(boardElement, {
                         width: boardElement.width(),
                         height: 300
                     });
-                    initDrawingBoard();
-                    return;
                 }
                 
-                strokeHistory = [];
+                // 重置筆劃計數
                 lastStrokeCount = 0;
                 
+                // 清空候選列表
                 const candidatesDiv = document.getElementById('candidatesList');
                 candidatesDiv.innerHTML = '<div style="color: #999; padding: 20px; text-align: center;">請在上方書寫，識別結果會即時顯示</div>';
-                updateUndoButton();
-            }
-        }
-        
-        // 重做（撤銷最後一筆）
-        function undoStroke() {
-            if (!drawingBoard) return;
-            
-            try {
-                // 如果 DrawingBoard 有 undo 方法，使用它
-                if (typeof drawingBoard.undo === 'function') {
-                    drawingBoard.undo();
-                    lastStrokeCount = Math.max(0, lastStrokeCount - 1);
-                } else {
-                    // 如果沒有 undo 方法，嘗試使用 clear 並提示用戶
-                    // 或者檢查是否有其他可用方法
-                    console.warn('DrawingBoard 不支持 undo 方法，請使用清除按鈕');
-                    alert('此版本的 DrawingBoard 不支持撤銷功能，請使用清除按鈕重新開始');
-                    return;
-                }
                 
-                // 如果還有筆劃，重新識別
-                const strokes = drawingBoard.cloneStrokes();
-                if (strokes && strokes.length > 0) {
-                    recognizeHandwriting();
-                } else {
-                    const candidatesDiv = document.getElementById('candidatesList');
-                    candidatesDiv.innerHTML = '<div style="color: #999; padding: 20px; text-align: center;">請在上方書寫，識別結果會即時顯示</div>';
-                    lastStrokeCount = 0;
+                // 如果重新初始化了繪圖板，需要重新設置監聽
+                if (needReinit) {
+                    initDrawingBoard();
                 }
-                updateUndoButton();
-            } catch (e) {
-                console.error('撤銷筆劃時出錯:', e);
             }
         }
         
-        // 更新重做按鈕狀態
-        function updateUndoButton() {
-            const undoBtn = document.querySelector('.btn-undo');
-            if (undoBtn && drawingBoard) {
-                const strokes = drawingBoard.cloneStrokes();
-                if (strokes && strokes.length > 0) {
-                    undoBtn.disabled = false;
-                } else {
-                    undoBtn.disabled = true;
-                }
-            }
-        }
         
         // 識別手寫（即時識別）
         function recognizeHandwriting() {
@@ -686,13 +625,11 @@
             if (!strokes || strokes.length === 0) {
                 const candidatesDiv = document.getElementById('candidatesList');
                 candidatesDiv.innerHTML = '<div style="color: #999; padding: 20px; text-align: center;">請在上方書寫，識別結果會即時顯示</div>';
-                updateUndoButton();
                 return;
             }
             
             const candidatesDiv = document.getElementById('candidatesList');
             candidatesDiv.innerHTML = '<span class="loading"></span> 識別中...';
-            updateUndoButton();
             
             const analyzedChar = new HanziLookup.AnalyzedCharacter(strokes);
             matcher.match(analyzedChar, 10, function(matches) {
@@ -706,7 +643,6 @@
                 } else {
                     candidatesDiv.innerHTML = '<div style="color: #999; padding: 10px;">未找到匹配的字符，請繼續書寫</div>';
                 }
-                updateUndoButton();
             });
         }
         
