@@ -59,6 +59,19 @@
             margin-bottom: 15px;
             padding-bottom: 10px;
             border-bottom: 2px solid #667eea;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .btn-clear-result {
+            background: #6c757d;
+            color: white;
+            padding: 6px 16px;
+            font-size: 14px;
+        }
+        .btn-clear-result:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
         }
         
         /* 輸入區域樣式 */
@@ -289,7 +302,10 @@
             
             <!-- 輸出區域 -->
             <div class="section output-section">
-                <div class="section-title">📊 筆劃結果</div>
+                <div class="section-title">
+                    <span>📊 筆劃結果</span>
+                    <button class="btn-clear-result" onclick="clearOutput()">清除結果</button>
+                </div>
                 <div id="outputResult">請輸入中文字...</div>
             </div>
         </div>
@@ -585,6 +601,17 @@
                 <div class="char-uiojk">UIOJK: ${uiojk}</div>
                 <div class="char-strokes">${strokes}</div>
             </div>`;
+        }
+        
+        // 清除輸出結果
+        function clearOutput() {
+            const outputDiv = document.getElementById('outputResult');
+            outputDiv.textContent = '請輸入中文字...';
+            // 同時清空輸入框
+            const input = document.getElementById('textInput');
+            if (input) {
+                input.value = '';
+            }
         }
         
         // 切換輸入模式
